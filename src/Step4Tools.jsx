@@ -10943,3 +10943,145 @@ export const SensoryTrialVerificationComponent = ({ verificationData = [], setVe
         </div>
     );
 };
+
+// ==================== 緊急時対応の検証 ====================
+export const EmergencyVerificationComponent = ({ verificationData = [], setVerificationData, actionName }) => {
+    const [viewMode, setViewMode] = useState('list');
+    const [currentData, setCurrentData] = useState(null);
+    const [selectedRecordId, setSelectedRecordId] = useState(null);
+    const archives = Array.isArray(verificationData) ? [...verificationData].sort((a, b) => new Date(b.verificationDate) - new Date(a.verificationDate)) : [];
+
+    const effectLevels = [
+        { value: 'very_effective', label: 'とても効果的', color: 'bg-green-100 text-green-700', icon: '😊' },
+        { value: 'somewhat_effective', label: '少し効果があった', color: 'bg-blue-100 text-blue-700', icon: '🙂' },
+        { value: 'no_change', label: '変化なし', color: 'bg-gray-100 text-gray-700', icon: '😐' },
+        { value: 'negative', label: '逆効果だった', color: 'bg-red-100 text-red-700', icon: '😟' }
+    ];
+
+    const continuationOptions = [
+        { value: 'continue', label: '継続する', color: 'bg-green-100 text-green-700' },
+        { value: 'modify', label: '修正して継続', color: 'bg-yellow-100 text-yellow-700' },
+        { value: 'stop', label: '中止する', color: 'bg-red-100 text-red-700' },
+        { value: 'undecided', label: '検討中', color: 'bg-gray-100 text-gray-700' }
+    ];
+
+    const createEmptyData = () => ({
+        id: Date.now(),
+        verificationDate: new Date().toISOString().split('T')[0],
+        verifier: '',
+        emergencySituation: '',
+        responseUsed: '',
+        beforeState: '',
+        afterState: '',
+        effectLevel: '',
+        userReaction: '',
+        staffReaction: '',
+        continuation: '',
+        modificationIdea: '',
+        preventionMeasures: '',
+        overallComment: ''
+    });
+
+    const handleCreateNew = () => { setCurrentData(createEmptyData()); setSelectedRecordId(null); setViewMode('edit'); };
+    const handleSave = () => {
+        if (!currentData.verificationDate) { alert('検証日を入力してください'); return; }
+        if (!currentData.verifier) { alert('検証者を入力してください'); return; }
+        if (selectedRecordId) { setVerificationData(archives.map(a => a.id === selectedRecordId ? currentData : a)); }
+        else { setVerificationData([...archives, currentData]); }
+        setViewMode('list'); setCurrentData(null); setSelectedRecordId(null);
+    };
+    const handleEdit = (record) => { setCurrentData({ ...record }); setSelectedRecordId(record.id); setViewMode('edit'); };
+    const handleView = (record) => { setCurrentData({ ...record }); setSelectedRecordId(record.id); setViewMode('view'); };
+    const handleDelete = (recordId) => { if (window.confirm('この検証記録を削除しますか？')) { setVerificationData(archives.filter(a => a.id !== recordId)); } };
+
+    if (viewMode === 'list') {
+        return (
+            <div className="bg-white p-6 rounded-lg shadow-sm">
+                <div className="flex justify-between items-center mb-6">
+                    <div>
+                        <h3 className="text-xl font-bold text-gray-800">🚨 緊急時対応の検証</h3>
+                        <p className="text-sm text-gray-600 mt-1">緊急時の対応を振り返り、今後の対策を検討します。</p>
+                        {actionName && <p className="text-sm text-blue-600 mt-1">対象ご利用者: {actionName}</p>}
+                    </div>
+                    <button onClick={handleCreateNew} className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 shadow-md">
+                        <span>＋</span><span>新規検証を作成</span>
+                    </button>
+                </div>
+                {archives.length === 0 ? (
+                    <div className="text-center py-12 bg-gray-50 rounded-lg">
+                        <p className="text-gray-500">まだ検証記録がありません。</p>
+                        <p className="text-gray-400 text-sm mt-2">「新規検証を作成」ボタンから記録を始めましょう。</p>
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        {archives.map(record => (
+                            <div key={record.id} className="p-4 border rounded-lg hover:bg-gray-50 flex justify-between items-center">
+                                <div>
+                                    <p className="font-medium">検証者: {record.verifier}</p>
+                                    <p className="text-sm text-gray-600">検証日: {record.verificationDate}</p>
+                                    {record.emergencySituation && <p className="text-sm text-red-600 mt-1">状況: {record.emergencySituation.substring(0, 30)}...</p>}
+                                </div>
+                                <div className="flex gap-2">
+                                    <button onClick={() => handleView(record)} className="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200">閲覧</button>
+                                    <button onClick={() => handleEdit(record)} className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200">編集</button>
+                                    <button onClick={() => handleDelete(record.id)} className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200">削除</button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    const isEditing = viewMode === 'edit';
+    return (
+        <div className="bg-white p-6 rounded-lg shadow-sm space-y-6">
+            <div className="flex justify-between items-center">
+                <h3 className="text-xl font-bold text-gray-800">{isEditing ? (selectedRecordId ? '検証記録を編集' : '新規検証記録を作成') : '検証記録を閲覧'}</h3>
+                <button onClick={() => { setViewMode('list'); setCurrentData(null); setSelectedRecordId(null); }} className="px-4 py-2 text-gray-600 hover:text-gray-800">← 一覧に戻る</button>
+            </div>
+            <div className="bg-gray-50 p-4 rounded-lg border">
+                <h4 className="font-bold text-gray-800 mb-4">基本情報</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">検証日 <span className="text-red-500">*</span></label><input type="date" value={currentData?.verificationDate || ''} onChange={(e) => setCurrentData({ ...currentData, verificationDate: e.target.value })} disabled={!isEditing} className="w-full px-3 py-2 border rounded-lg" /></div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">検証者 <span className="text-red-500">*</span></label><input type="text" value={currentData?.verifier || ''} onChange={(e) => setCurrentData({ ...currentData, verifier: e.target.value })} disabled={!isEditing} placeholder="あなたのお名前" className="w-full px-3 py-2 border rounded-lg" /></div>
+                </div>
+            </div>
+            <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+                <h4 className="font-bold text-red-800 mb-4 flex items-center gap-2"><span className="text-xl">🚨</span>緊急時の状況</h4>
+                <div className="space-y-4">
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">発生した緊急事態</label>{isEditing ? <textarea value={currentData?.emergencySituation || ''} onChange={(e) => setCurrentData({ ...currentData, emergencySituation: e.target.value })} placeholder="どのような緊急事態が発生したか" className="w-full px-3 py-2 border rounded-lg" rows="3" /> : <div className="bg-white p-2 rounded border">{currentData?.emergencySituation || '（記録なし）'}</div>}</div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">実施した対応</label>{isEditing ? <textarea value={currentData?.responseUsed || ''} onChange={(e) => setCurrentData({ ...currentData, responseUsed: e.target.value })} placeholder="どのような対応を行ったか" className="w-full px-3 py-2 border rounded-lg" rows="3" /> : <div className="bg-white p-2 rounded border">{currentData?.responseUsed || '（記録なし）'}</div>}</div>
+                </div>
+            </div>
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <h4 className="font-bold text-blue-800 mb-4 flex items-center gap-2"><span className="text-xl">📊</span>対応の効果</h4>
+                <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label className="block text-sm font-medium text-gray-700 mb-1">😰 対応前の様子</label>{isEditing ? <textarea value={currentData?.beforeState || ''} onChange={(e) => setCurrentData({ ...currentData, beforeState: e.target.value })} placeholder="対応前のご利用者の様子" className="w-full px-3 py-2 border rounded-lg" rows="2" /> : <div className="bg-white p-2 rounded border">{currentData?.beforeState || '（記録なし）'}</div>}</div>
+                        <div><label className="block text-sm font-medium text-gray-700 mb-1">😊 対応後の様子</label>{isEditing ? <textarea value={currentData?.afterState || ''} onChange={(e) => setCurrentData({ ...currentData, afterState: e.target.value })} placeholder="対応後のご利用者の様子" className="w-full px-3 py-2 border rounded-lg" rows="2" /> : <div className="bg-white p-2 rounded border">{currentData?.afterState || '（記録なし）'}</div>}</div>
+                    </div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-2">効果の程度</label><div className="flex flex-wrap gap-2">{effectLevels.map(level => (<label key={level.value} className={`inline-flex items-center px-3 py-1 rounded cursor-pointer text-sm ${currentData?.effectLevel === level.value ? level.color + ' ring-2 ring-offset-1' : 'bg-white border hover:bg-gray-50'} ${!isEditing ? 'cursor-default' : ''}`}><input type="radio" name="effect" value={level.value} checked={currentData?.effectLevel === level.value} onChange={(e) => setCurrentData({ ...currentData, effectLevel: e.target.value })} disabled={!isEditing} className="sr-only" /><span>{level.icon} {level.label}</span></label>))}</div></div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">ご利用者の反応</label>{isEditing ? <textarea value={currentData?.userReaction || ''} onChange={(e) => setCurrentData({ ...currentData, userReaction: e.target.value })} placeholder="ご利用者がどのように反応したか" className="w-full px-3 py-2 border rounded-lg" rows="2" /> : <div className="bg-white p-2 rounded border">{currentData?.userReaction || '（記録なし）'}</div>}</div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">職員の振り返り</label>{isEditing ? <textarea value={currentData?.staffReaction || ''} onChange={(e) => setCurrentData({ ...currentData, staffReaction: e.target.value })} placeholder="対応した職員の感想や気づき" className="w-full px-3 py-2 border rounded-lg" rows="2" /> : <div className="bg-white p-2 rounded border">{currentData?.staffReaction || '（記録なし）'}</div>}</div>
+                </div>
+            </div>
+            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                <h4 className="font-bold text-green-800 mb-4 flex items-center gap-2"><span className="text-xl">📝</span>今後の対策</h4>
+                <div className="space-y-4">
+                    <div><label className="block text-sm font-medium text-gray-700 mb-2">今後の方針</label><div className="flex flex-wrap gap-2">{continuationOptions.map(option => (<label key={option.value} className={`inline-flex items-center px-3 py-1 rounded cursor-pointer text-sm ${currentData?.continuation === option.value ? option.color + ' ring-2 ring-offset-1' : 'bg-white border hover:bg-gray-50'} ${!isEditing ? 'cursor-default' : ''}`}><input type="radio" name="continuation" value={option.value} checked={currentData?.continuation === option.value} onChange={(e) => setCurrentData({ ...currentData, continuation: e.target.value })} disabled={!isEditing} className="sr-only" /><span>{option.label}</span></label>))}</div></div>
+                    {currentData?.continuation === 'modify' && <div><label className="block text-sm font-medium text-gray-700 mb-1">💡 改善案</label>{isEditing ? <textarea value={currentData?.modificationIdea || ''} onChange={(e) => setCurrentData({ ...currentData, modificationIdea: e.target.value })} placeholder="どのように改善するか" className="w-full px-3 py-2 border rounded-lg" rows="2" /> : <div className="bg-white p-2 rounded border">{currentData?.modificationIdea || '（記録なし）'}</div>}</div>}
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">🛡️ 予防策</label>{isEditing ? <textarea value={currentData?.preventionMeasures || ''} onChange={(e) => setCurrentData({ ...currentData, preventionMeasures: e.target.value })} placeholder="同様の事態を防ぐための対策" className="w-full px-3 py-2 border rounded-lg" rows="3" /> : <div className="bg-white p-2 rounded border">{currentData?.preventionMeasures || '（記録なし）'}</div>}</div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">📋 全体コメント</label>{isEditing ? <textarea value={currentData?.overallComment || ''} onChange={(e) => setCurrentData({ ...currentData, overallComment: e.target.value })} placeholder="その他特記事項" className="w-full px-3 py-2 border rounded-lg" rows="2" /> : <div className="bg-white p-2 rounded border">{currentData?.overallComment || '（記録なし）'}</div>}</div>
+                </div>
+            </div>
+            {isEditing && (
+                <div className="flex justify-end gap-3 pt-4 border-t">
+                    <button onClick={() => { setViewMode('list'); setCurrentData(null); setSelectedRecordId(null); }} className="px-6 py-2 border rounded-lg hover:bg-gray-50">キャンセル</button>
+                    <button onClick={handleSave} className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 shadow-md">このページを保存</button>
+                </div>
+            )}
+        </div>
+    );
+};
